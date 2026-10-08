@@ -1,0 +1,2592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShiftCraft — Weekly Store Shift Planner</title>
+  <meta name="description" content="Plan, balance, and print your weekly 5-person shift schedule with real-time hours tracking, daily coverage checks, and friendly guidance.">
+  <style>
+    /* --- CSS Variables & Design Tokens --- */
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --primary-light: #eff6ff;
+      --primary-border: #bfdbfe;
+      
+      --success: #10b981;
+      --success-light: #ecfdf5;
+      --success-border: #a7f3d0;
+      
+      --warning: #f59e0b;
+      --warning-light: #fffbeb;
+      --warning-border: #fde68a;
+      --warning-text: #b45309;
+
+      --danger: #ef4444;
+      --danger-light: #fef2f2;
+      --danger-border: #fecaca;
+      --danger-text: #b91c1c;
+
+      --slate-50: #f8fafc;
+      --slate-100: #f1f5f9;
+      --slate-200: #e2e8f0;
+      --slate-300: #cbd5e1;
+      --slate-400: #94a3b8;
+      --slate-500: #64748b;
+      --slate-600: #475569;
+      --slate-700: #334155;
+      --slate-800: #1e293b;
+      --slate-900: #0f172a;
+
+      /* Shift Preset Colors */
+      --shift-open-bg: #fef3c7;
+      --shift-open-text: #92400e;
+      --shift-open-border: #fcd34d;
+
+      --shift-mid-bg: #e0f2fe;
+      --shift-mid-text: #0369a1;
+      --shift-mid-border: #7dd3fc;
+
+      --shift-close-bg: #ede9fe;
+      --shift-close-text: #5b21b6;
+      --shift-close-border: #c4b5fd;
+
+      --shift-full-bg: #d1fae5;
+      --shift-full-text: #065f46;
+      --shift-full-border: #6ee7b7;
+
+      --shift-custom-bg: #ccfbf1;
+      --shift-custom-text: #115e59;
+      --shift-custom-border: #5eead4;
+
+      --shift-off-bg: #f1f5f9;
+      --shift-off-text: #64748b;
+      --shift-off-border: #e2e8f0;
+
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --radius-full: 9999px;
+
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    }
+
+    /* --- Base Styles --- */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: #f8fafc;
+      color: var(--slate-800);
+      line-height: 1.5;
+      padding-bottom: 60px;
+    }
+
+    button, input, select, textarea {
+      font: inherit;
+    }
+
+    /* --- App Header --- */
+    .app-header {
+      background: white;
+      border-bottom: 1px solid var(--slate-200);
+      padding: 16px 24px;
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .header-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .title-group {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .brand-title {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: var(--slate-900);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-badge {
+      background: var(--primary-light);
+      color: var(--primary);
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--primary-border);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .brand-subtitle {
+      font-size: 0.88rem;
+      color: var(--slate-600);
+    }
+
+    /* Header Actions Toolbar */
+    .header-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .week-selector-card {
+      display: flex;
+      align-items: center;
+      background: var(--slate-100);
+      padding: 4px 6px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--slate-200);
+      gap: 6px;
+    }
+
+    .week-display {
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: var(--slate-700);
+      padding: 0 6px;
+      min-width: 185px;
+      text-align: center;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 12px;
+      border-radius: var(--radius-md);
+      font-weight: 600;
+      font-size: 0.84rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      border: 1px solid transparent;
+      outline: none;
+      white-space: nowrap;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-icon-only {
+      padding: 6px 8px;
+      min-width: 32px;
+      min-height: 32px;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+    .btn-primary:hover {
+      background: var(--primary-hover);
+    }
+
+    .btn-secondary {
+      background: white;
+      color: var(--slate-700);
+      border-color: var(--slate-300);
+    }
+    .btn-secondary:hover {
+      background: var(--slate-100);
+      border-color: var(--slate-400);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--slate-600);
+    }
+    .btn-ghost:hover {
+      background: var(--slate-200);
+      color: var(--slate-900);
+    }
+
+    .btn-danger {
+      background: var(--danger-light);
+      color: var(--danger-text);
+      border-color: var(--danger-border);
+    }
+    .btn-danger:hover {
+      background: #fee2e2;
+    }
+
+    /* --- Main Layout Container --- */
+    .main-container {
+      max-width: 1400px;
+      margin: 20px auto 0;
+      padding: 0 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* View Switcher Bar (Mobile Friendly) */
+    .view-control-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .view-tabs {
+      display: inline-flex;
+      background: var(--slate-200);
+      padding: 4px;
+      border-radius: var(--radius-md);
+      gap: 4px;
+    }
+
+    .view-tab-btn {
+      padding: 6px 14px;
+      border-radius: var(--radius-sm);
+      border: none;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--slate-600);
+      background: transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+
+    .view-tab-btn.active {
+      background: white;
+      color: var(--primary);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .quick-preset-legend {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 0.78rem;
+      color: var(--slate-600);
+    }
+
+    .legend-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 7px;
+      border-radius: var(--radius-full);
+      font-weight: 600;
+      font-size: 0.73rem;
+      border: 1px solid transparent;
+    }
+
+    /* --- Friendly Banner & Alerts --- */
+    .alert-banner {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 12px 16px;
+      border-radius: var(--radius-md);
+      font-size: 0.85rem;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .alert-banner.warning {
+      background: var(--warning-light);
+      border: 1px solid var(--warning-border);
+      color: var(--warning-text);
+    }
+
+    .alert-banner.info {
+      background: var(--primary-light);
+      border: 1px solid var(--primary-border);
+      color: var(--slate-700);
+    }
+
+    /* --- Staff Overview Bar (5 Employees Cards) --- */
+    .staff-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 14px;
+    }
+
+    .employee-card {
+      background: white;
+      border: 1px solid var(--slate-200);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: border-color 0.15s;
+    }
+
+    .employee-card:hover {
+      border-color: var(--slate-300);
+    }
+
+    .emp-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .emp-avatar-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .emp-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: white;
+      flex-shrink: 0;
+    }
+
+    .emp-info-title {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--slate-900);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .emp-info-title:hover {
+      color: var(--primary);
+    }
+
+    .emp-info-role {
+      font-size: 0.74rem;
+      color: var(--slate-500);
+    }
+
+    .emp-hours-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: 0.8rem;
+    }
+
+    .emp-hours-val {
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: var(--slate-800);
+    }
+
+    .emp-hours-target {
+      color: var(--slate-500);
+      font-size: 0.76rem;
+    }
+
+    .progress-bar-bg {
+      background: var(--slate-100);
+      border-radius: var(--radius-full);
+      height: 6px;
+      overflow: hidden;
+      width: 100%;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      border-radius: var(--radius-full);
+      transition: width 0.3s ease, background-color 0.3s ease;
+    }
+
+    .ot-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: var(--radius-full);
+      background: var(--danger-light);
+      color: var(--danger-text);
+      border: 1px solid var(--danger-border);
+    }
+
+    /* --- The Schedule Grid (Desktop / Tablet) --- */
+    .schedule-card {
+      background: white;
+      border: 1px solid var(--slate-200);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+
+    .table-responsive-wrapper {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .schedule-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 900px;
+    }
+
+    .schedule-table th, 
+    .schedule-table td {
+      border: 1px solid var(--slate-200);
+      padding: 10px;
+      vertical-align: top;
+    }
+
+    /* Sticky employee column for mobile horizontal scroll */
+    .col-employee {
+      width: 200px;
+      min-width: 180px;
+      max-width: 220px;
+      position: sticky;
+      left: 0;
+      background: white;
+      z-index: 20;
+      border-right: 2px solid var(--slate-300) !important;
+    }
+
+    thead .col-employee {
+      background: var(--slate-100);
+      z-index: 25;
+    }
+
+    thead th {
+      background: var(--slate-100);
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--slate-700);
+      text-align: left;
+    }
+
+    .day-header-content {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .day-name {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--slate-800);
+    }
+
+    .day-date {
+      font-size: 0.72rem;
+      color: var(--slate-500);
+      font-weight: 500;
+    }
+
+    .day-today-tag {
+      background: var(--primary);
+      color: white;
+      font-size: 0.65rem;
+      padding: 1px 5px;
+      border-radius: var(--radius-full);
+      display: inline-block;
+      margin-left: 4px;
+    }
+
+    /* Shift Cell in Grid */
+    .shift-slot-cell {
+      height: 84px;
+      cursor: pointer;
+      transition: background 0.15s;
+      position: relative;
+    }
+
+    .shift-slot-cell:hover {
+      background: #f8fafc;
+    }
+
+    .shift-pill {
+      height: 100%;
+      border-radius: var(--radius-md);
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border: 1px solid transparent;
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+
+    .shift-pill:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .shift-pill-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 4px;
+    }
+
+    .shift-pill-label {
+      font-size: 0.82rem;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .shift-pill-hours {
+      font-size: 0.72rem;
+      font-weight: 700;
+      background: rgba(255, 255, 255, 0.6);
+      padding: 1px 5px;
+      border-radius: var(--radius-full);
+    }
+
+    .shift-pill-times {
+      font-size: 0.74rem;
+      font-weight: 600;
+      opacity: 0.9;
+    }
+
+    .shift-pill-note {
+      font-size: 0.68rem;
+      opacity: 0.8;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Empty Slot State */
+    .empty-slot {
+      height: 100%;
+      min-height: 64px;
+      border: 1px dashed var(--slate-300);
+      border-radius: var(--radius-md);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--slate-400);
+      font-size: 0.75rem;
+      gap: 3px;
+      transition: all 0.15s;
+    }
+
+    .empty-slot:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: var(--primary-light);
+    }
+
+    .empty-slot.empty-slot-unavail {
+      background: #fef2f2;
+      border-color: #fca5a5;
+      color: #b91c1c;
+      border-style: dashed;
+    }
+
+    .empty-slot.empty-slot-unavail:hover {
+      background: #fee2e2;
+      border-color: #ef4444;
+      color: #991b1b;
+    }
+
+    /* Availability Day Toggle Chips */
+    .availability-days-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+    }
+
+    .avail-chip-btn {
+      padding: 6px 3px;
+      border-radius: var(--radius-sm);
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-align: center;
+      cursor: pointer;
+      border: 1px solid var(--slate-300);
+      background: white;
+      color: var(--slate-600);
+      transition: all 0.15s ease;
+      user-select: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .avail-chip-btn.is-available {
+      background: var(--success-light);
+      border-color: var(--success-border);
+      color: #065f46;
+    }
+
+    .avail-chip-btn.is-unavailable {
+      background: var(--danger-light);
+      border-color: var(--danger-border);
+      color: var(--danger-text);
+      opacity: 0.88;
+    }
+
+    .avail-status-tag {
+      font-size: 0.62rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+
+    /* Shift Type Variants */
+    .shift-style-open {
+      background: var(--shift-open-bg);
+      color: var(--shift-open-text);
+      border-color: var(--shift-open-border);
+    }
+    .shift-style-mid {
+      background: var(--shift-mid-bg);
+      color: var(--shift-mid-text);
+      border-color: var(--shift-mid-border);
+    }
+    .shift-style-close {
+      background: var(--shift-close-bg);
+      color: var(--shift-close-text);
+      border-color: var(--shift-close-border);
+    }
+    .shift-style-full {
+      background: var(--shift-full-bg);
+      color: var(--shift-full-text);
+      border-color: var(--shift-full-border);
+    }
+    .shift-style-custom {
+      background: var(--shift-custom-bg);
+      color: var(--shift-custom-text);
+      border-color: var(--shift-custom-border);
+    }
+    .shift-style-off {
+      background: var(--shift-off-bg);
+      color: var(--shift-off-text);
+      border-color: var(--shift-off-border);
+      opacity: 0.85;
+    }
+
+    /* Coverage Summary Row at the bottom of the table */
+    .coverage-row td {
+      background: var(--slate-100);
+      font-size: 0.75rem;
+      padding: 10px;
+    }
+
+    .coverage-box {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .coverage-stat {
+      display: flex;
+      justify-content: space-between;
+      font-weight: 600;
+      color: var(--slate-700);
+    }
+
+    .coverage-alert-chip {
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: var(--warning-text);
+      background: var(--warning-light);
+      padding: 2px 4px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      margin-top: 3px;
+      border: 1px solid var(--warning-border);
+    }
+
+    /* --- Day View (Mobile Optimized) --- */
+    .day-view-container {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .day-selector-scroll {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .day-chip-btn {
+      flex: 1;
+      min-width: 85px;
+      padding: 8px 10px;
+      background: white;
+      border: 1px solid var(--slate-200);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      transition: all 0.15s;
+    }
+
+    .day-chip-btn.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .day-chip-btn.active .day-chip-date {
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    .day-chip-title {
+      font-weight: 700;
+      font-size: 0.85rem;
+    }
+
+    .day-chip-date {
+      font-size: 0.72rem;
+      color: var(--slate-500);
+    }
+
+    .day-view-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .day-employee-item {
+      background: white;
+      border: 1px solid var(--slate-200);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .day-employee-slot {
+      flex: 1;
+      max-width: 220px;
+    }
+
+    /* --- Modals & Overlays --- */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(15, 23, 42, 0.55);
+      backdrop-filter: blur(2px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 16px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .modal-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-box {
+      background: white;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      width: 100%;
+      max-width: 480px;
+      overflow: hidden;
+      transform: translateY(12px) scale(0.98);
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-overlay.open .modal-box {
+      transform: translateY(0) scale(1);
+    }
+
+    .modal-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--slate-200);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-title {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--slate-900);
+    }
+
+    .modal-body {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    .modal-footer {
+      padding: 14px 20px;
+      border-top: 1px solid var(--slate-200);
+      background: var(--slate-50);
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    /* Preset Quick Buttons in Modal */
+    .presets-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--slate-600);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .preset-buttons-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .preset-btn {
+      padding: 10px 12px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--slate-200);
+      background: white;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.15s;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .preset-btn:hover {
+      border-color: var(--primary);
+      background: var(--primary-light);
+    }
+
+    .preset-btn-name {
+      font-weight: 700;
+      font-size: 0.85rem;
+    }
+
+    .preset-btn-time {
+      font-size: 0.74rem;
+      color: var(--slate-500);
+    }
+
+    /* Form Fields */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .form-label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--slate-700);
+    }
+
+    .form-input, .form-select {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid var(--slate-300);
+      border-radius: var(--radius-md);
+      font-size: 0.88rem;
+      color: var(--slate-800);
+      transition: border-color 0.15s;
+    }
+
+    .form-input:focus, .form-select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+
+    .form-error-inline {
+      color: var(--danger-text);
+      font-size: 0.76rem;
+      font-weight: 500;
+      display: none;
+    }
+
+    .form-error-inline.show {
+      display: block;
+    }
+
+    /* --- Friendly Toast System --- */
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 150;
+      pointer-events: none;
+    }
+
+    .toast {
+      pointer-events: auto;
+      background: white;
+      border: 1px solid var(--slate-200);
+      border-radius: var(--radius-md);
+      padding: 12px 18px;
+      box-shadow: var(--shadow-lg);
+      font-size: 0.86rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 280px;
+      max-width: 420px;
+      animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: opacity 0.2s, transform 0.2s;
+    }
+
+    .toast.toast-error {
+      background: var(--danger-light);
+      border-color: var(--danger-border);
+      color: var(--danger-text);
+    }
+
+    .toast.toast-success {
+      background: var(--success-light);
+      border-color: var(--success-border);
+      color: #065f46;
+    }
+
+    .toast.toast-info {
+      background: var(--primary-light);
+      border-color: var(--primary-border);
+      color: #1e40af;
+    }
+
+    /* Animations */
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(16px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    /* --- Print Ready View (@media print) --- */
+    @media print {
+      body {
+        background: white;
+        padding: 0;
+        color: black;
+      }
+
+      .app-header,
+      .view-control-bar,
+      .staff-summary-grid,
+      .header-toolbar,
+      .modal-overlay,
+      .toast-container,
+      .no-print {
+        display: none !important;
+      }
+
+      .main-container {
+        max-width: 100%;
+        margin: 0;
+        padding: 10px;
+      }
+
+      .schedule-card {
+        border: none;
+        box-shadow: none;
+      }
+
+      .schedule-table {
+        min-width: 100%;
+        border: 2px solid #333;
+      }
+
+      .schedule-table th, 
+      .schedule-table td {
+        border: 1px solid #555;
+        padding: 6px;
+      }
+
+      .col-employee {
+        position: static !important;
+        background: white !important;
+      }
+
+      .shift-pill {
+        border: 1px solid #666 !important;
+        box-shadow: none !important;
+        transform: none !important;
+        padding: 4px;
+        background: white !important;
+        color: black !important;
+      }
+
+      .shift-pill-hours {
+        background: #eee !important;
+      }
+
+      .print-header-banner {
+        display: block !important;
+        margin-bottom: 14px;
+      }
+
+      .print-signoff-box {
+        display: block !important;
+        margin-top: 30px;
+        display: flex !important;
+        justify-content: space-between;
+        font-size: 0.85rem;
+      }
+    }
+
+    .print-header-banner,
+    .print-signoff-box {
+      display: none;
+    }
+
+    /* Mobile Responsive Fine-tuning */
+    @media (max-width: 768px) {
+      .header-content {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .header-toolbar {
+        width: 100%;
+        justify-content: space-between;
+      }
+      .week-selector-card {
+        flex: 1;
+      }
+      .week-display {
+        min-width: auto;
+        font-size: 0.78rem;
+      }
+      .toast-container {
+        left: 16px;
+        right: 16px;
+        bottom: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Print Only Header -->
+  <div class="print-header-banner">
+    <h1 style="font-size: 1.6rem; margin-bottom: 2px;">Weekly Store Shift Schedule</h1>
+    <p id="printWeekLabel" style="font-size: 0.95rem; color: #444; font-weight: 600;"></p>
+  </div>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="header-content">
+      
+      <!-- Title & Explanation -->
+      <div class="title-group">
+        <div class="brand-title">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--primary);">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+          ShiftCraft
+          <span class="brand-badge">5-Staff Edition</span>
+        </div>
+        <p class="brand-subtitle">
+          Plan, balance, and print your weekly 5-person shift schedule with real-time hours tracking and coverage checks.
+        </p>
+      </div>
+
+      <!-- Action Toolbar -->
+      <div class="header-toolbar no-print">
+        
+        <!-- Week Navigator -->
+        <div class="week-selector-card">
+          <button class="btn btn-ghost btn-icon-only" onclick="shiftWeek(-1)" title="Previous Week" aria-label="Previous Week">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+          </button>
+          <span class="week-display" id="weekRangeDisplay">Oct 12 – Oct 18, 2026</span>
+          <button class="btn btn-ghost btn-icon-only" onclick="shiftWeek(1)" title="Next Week" aria-label="Next Week">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </button>
+          <button class="btn btn-secondary" onclick="goToCurrentWeek()" style="font-size: 0.76rem; padding: 3px 8px;">
+            Today
+          </button>
+        </div>
+
+        <!-- Manager Quick Actions -->
+        <button class="btn btn-secondary" onclick="copyScheduleToClipboard()" title="Copy schedule summary formatted for WhatsApp or SMS">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          Copy Text
+        </button>
+
+        <button class="btn btn-secondary" onclick="window.print()" title="Print breakroom schedule">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 6 2 18 2 18 9"></polyline>
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+            <rect x="6" y="14" width="12" height="8"></rect>
+          </svg>
+          Print
+        </button>
+
+        <button class="btn btn-primary" onclick="openStaffModal()" title="Edit employee names, roles, and target hours">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          Manage Staff
+        </button>
+
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="main-container">
+
+    <!-- Responsive View Controller & Quick Legend -->
+    <div class="view-control-bar no-print">
+      <div class="view-tabs">
+        <button class="view-tab-btn active" id="tabGrid" onclick="switchView('grid')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"></rect>
+            <rect x="14" y="3" width="7" height="7"></rect>
+            <rect x="14" y="14" width="7" height="7"></rect>
+            <rect x="3" y="14" width="7" height="7"></rect>
+          </svg>
+          Weekly Table
+        </button>
+        <button class="view-tab-btn" id="tabDay" onclick="switchView('day')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+          Day-by-Day (Mobile)
+        </button>
+      </div>
+
+      <!-- Quick Shift Color Legend -->
+      <div class="quick-preset-legend">
+        <span class="legend-chip shift-style-open">🌅 Open (8am-2pm)</span>
+        <span class="legend-chip shift-style-mid">☀️ Mid (11am-5pm)</span>
+        <span class="legend-chip shift-style-close">🌙 Close (2pm-9pm)</span>
+        <span class="legend-chip shift-style-full">📦 Full (9am-6pm)</span>
+        <span class="legend-chip shift-style-off">Off / Rest</span>
+      </div>
+
+      <!-- Store Tools Menu (Reset / Sample) -->
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-ghost" style="font-size: 0.78rem;" onclick="loadSampleSchedule()">
+          Load Sample
+        </button>
+        <button class="btn btn-ghost" style="font-size: 0.78rem; color: var(--danger-text);" onclick="confirmClearWeek()">
+          Clear Week
+        </button>
+      </div>
+    </div>
+
+    <!-- Notification Banners (Dynamic for Understaffing / Overtime warnings) -->
+    <div id="coverageAlertContainer" class="no-print"></div>
+
+    <!-- 5 Employees Live Hours & Target Cards -->
+    <section class="staff-summary-grid no-print" id="staffSummaryGrid" aria-label="Staff Hours Summary"></section>
+
+    <!-- Schedule Matrix View (Desktop Default) -->
+    <section class="schedule-card" id="gridView">
+      <div class="table-responsive-wrapper">
+        <table class="schedule-table">
+          <thead>
+            <tr>
+              <th class="col-employee">Employee</th>
+              <th id="th-day-0"><div class="day-header-content"><span class="day-name">Monday</span><span class="day-date" id="date-day-0">-</span></div></th>
+              <th id="th-day-1"><div class="day-header-content"><span class="day-name">Tuesday</span><span class="day-date" id="date-day-1">-</span></div></th>
+              <th id="th-day-2"><div class="day-header-content"><span class="day-name">Wednesday</span><span class="day-date" id="date-day-2">-</span></div></th>
+              <th id="th-day-3"><div class="day-header-content"><span class="day-name">Thursday</span><span class="day-date" id="date-day-3">-</span></div></th>
+              <th id="th-day-4"><div class="day-header-content"><span class="day-name">Friday</span><span class="day-date" id="date-day-4">-</span></div></th>
+              <th id="th-day-5"><div class="day-header-content"><span class="day-name">Saturday</span><span class="day-date" id="date-day-5">-</span></div></th>
+              <th id="th-day-6"><div class="day-header-content"><span class="day-name">Sunday</span><span class="day-date" id="date-day-6">-</span></div></th>
+            </tr>
+          </thead>
+          <tbody id="scheduleTableBody">
+            <!-- Rendered via JavaScript for the 5 employees -->
+          </tbody>
+          <tfoot>
+            <tr class="coverage-row">
+              <td class="col-employee" style="font-weight: 700; color: var(--slate-700);">
+                Daily Store Coverage
+              </td>
+              <td id="coverage-day-0"></td>
+              <td id="coverage-day-1"></td>
+              <td id="coverage-day-2"></td>
+              <td id="coverage-day-3"></td>
+              <td id="coverage-day-4"></td>
+              <td id="coverage-day-5"></td>
+              <td id="coverage-day-6"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
+
+    <!-- Day View (Mobile Optimized) -->
+    <section class="day-view-container" id="dayView" style="display: none;">
+      <div class="day-selector-scroll" id="daySelectorScroll">
+        <!-- Rendered with 7 day buttons -->
+      </div>
+      <div class="day-view-cards" id="dayViewCards">
+        <!-- Rendered with cards for all 5 employees on selected day -->
+      </div>
+    </section>
+
+    <!-- Print Signoff Box -->
+    <div class="print-signoff-box">
+      <div><strong>Store Manager Signature:</strong> _____________________________</div>
+      <div><strong>Date Posted:</strong> _____________________________</div>
+    </div>
+
+  </main>
+
+  <!-- ================= MODALS ================= -->
+
+  <!-- 1. Shift Editor Modal -->
+  <div class="modal-overlay" id="shiftModal" role="dialog" aria-modal="true" aria-labelledby="shiftModalTitle">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title" id="shiftModalTitle">Assign Shift</h2>
+          <p id="shiftModalSubtitle" style="font-size: 0.78rem; color: var(--slate-500);"></p>
+        </div>
+        <button class="btn btn-ghost btn-icon-only" onclick="closeShiftModal()" aria-label="Close dialog">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Availability Alert if employee is unavailable on this day -->
+        <div id="shiftModalAvailabilityAlert"></div>
+        
+        <!-- Quick Preset Buttons -->
+        <div class="form-group">
+          <span class="presets-label">Choose a Standard Shift</span>
+          <div class="preset-buttons-grid">
+            <button class="preset-btn" onclick="applyPreset('open')">
+              <span class="preset-btn-name" style="color: var(--shift-open-text);">🌅 Opening</span>
+              <span class="preset-btn-time">8:00 AM – 2:00 PM (6h)</span>
+            </button>
+            <button class="preset-btn" onclick="applyPreset('mid')">
+              <span class="preset-btn-name" style="color: var(--shift-mid-text);">☀️ Mid-Day</span>
+              <span class="preset-btn-time">11:00 AM – 5:00 PM (6h)</span>
+            </button>
+            <button class="preset-btn" onclick="applyPreset('close')">
+              <span class="preset-btn-name" style="color: var(--shift-close-text);">🌙 Closing</span>
+              <span class="preset-btn-time">2:00 PM – 9:00 PM (7h)</span>
+            </button>
+            <button class="preset-btn" onclick="applyPreset('full')">
+              <span class="preset-btn-name" style="color: var(--shift-full-text);">📦 Full Day</span>
+              <span class="preset-btn-time">9:00 AM – 6:00 PM (8h)</span>
+            </button>
+          </div>
+        </div>
+
+        <div style="border-top: 1px dashed var(--slate-200); margin: 4px 0;"></div>
+
+        <!-- Custom Shift Details -->
+        <div class="form-group">
+          <span class="presets-label">Or Custom Shift Times</span>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="shiftStartTime">Start Time</label>
+            <input type="time" class="form-input" id="shiftStartTime" value="09:00" oninput="validateShiftTimes()">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="shiftEndTime">End Time</label>
+            <input type="time" class="form-input" id="shiftEndTime" value="17:00" oninput="validateShiftTimes()">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="shiftBreakMins">Unpaid Break (mins)</label>
+            <input type="number" class="form-input" id="shiftBreakMins" value="30" min="0" max="180" step="15" oninput="validateShiftTimes()">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="shiftLabel">Shift Label</label>
+            <input type="text" class="form-input" id="shiftLabel" placeholder="e.g. Cashier / Floor">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="shiftNotes">Notes (Optional)</label>
+          <input type="text" class="form-input" id="shiftNotes" placeholder="e.g. Delivery check-in, register closing">
+        </div>
+
+        <!-- Friendly Validation Error Hint -->
+        <div class="form-error-inline" id="shiftTimeError">
+          Friendly notice: The end time must be after the start time, and break time cannot exceed shift duration.
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-danger" onclick="setSlotOff()" style="margin-right: auto;">
+          Set as Day Off
+        </button>
+        <button class="btn btn-secondary" onclick="closeShiftModal()">
+          Cancel
+        </button>
+        <button class="btn btn-primary" id="btnSaveShift" onclick="saveShiftFromModal()">
+          Save Shift
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Manage 5 Staff Modal -->
+  <div class="modal-overlay" id="staffModal" role="dialog" aria-modal="true" aria-labelledby="staffModalTitle">
+    <div class="modal-box" style="max-width: 540px;">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title" id="staffModalTitle">Manage 5 Store Employees</h2>
+          <p style="font-size: 0.78rem; color: var(--slate-500);">Customize names, store roles, and weekly target hours.</p>
+        </div>
+        <button class="btn btn-ghost btn-icon-only" onclick="closeStaffModal()" aria-label="Close dialog">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body" id="staffModalList">
+        <!-- Rendered dynamically for 5 employees -->
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeStaffModal()">
+          Cancel
+        </button>
+        <button class="btn btn-primary" onclick="saveStaffModal()">
+          Save Changes
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+  <!-- ================= JAVASCRIPT ================= -->
+  <script>
+    /* =========================================================================
+       ShiftCraft Store Planner - Pure Vanilla JavaScript State & Controller
+       ========================================================================= */
+
+    // Default 5 Employees Configuration
+    const DEFAULT_STAFF = [
+      { id: 1, name: 'Alex Rivera', role: 'Keyholder & Opener', targetHours: 35, color: '#3b82f6', initials: 'AR', availability: [true, true, true, true, true, false, false] },
+      { id: 2, name: 'Jordan Lee', role: 'Sales & Inventory', targetHours: 30, color: '#10b981', initials: 'JL', availability: [true, false, true, true, false, true, true] },
+      { id: 3, name: 'Taylor Brooks', role: 'Floor Associate', targetHours: 25, color: '#f59e0b', initials: 'TB', availability: [false, true, false, false, true, true, true] },
+      { id: 4, name: 'Morgan Chen', role: 'Senior Cashier & Closer', targetHours: 35, color: '#8b5cf6', initials: 'MC', availability: [true, true, false, true, true, false, false] },
+      { id: 5, name: 'Casey Patel', role: 'Shift Supervisor', targetHours: 40, color: '#06b6d4', initials: 'CP', availability: [false, false, true, false, true, true, true] }
+    ];
+
+    // Standard Shift Presets Definitions
+    const PRESETS = {
+      open: {
+        type: 'open',
+        label: 'Opening',
+        start: '08:00',
+        end: '14:00',
+        breakMins: 0,
+        hours: 6.0,
+        styleClass: 'shift-style-open'
+      },
+      mid: {
+        type: 'mid',
+        label: 'Mid-Day',
+        start: '11:00',
+        end: '17:00',
+        breakMins: 0,
+        hours: 6.0,
+        styleClass: 'shift-style-mid'
+      },
+      close: {
+        type: 'close',
+        label: 'Closing',
+        start: '14:00',
+        end: '21:00',
+        breakMins: 0,
+        hours: 7.0,
+        styleClass: 'shift-style-close'
+      },
+      full: {
+        type: 'full',
+        label: 'Full Day',
+        start: '09:00',
+        end: '18:00',
+        breakMins: 60,
+        hours: 8.0,
+        styleClass: 'shift-style-full'
+      },
+      off: {
+        type: 'off',
+        label: 'Off',
+        start: '',
+        end: '',
+        breakMins: 0,
+        hours: 0,
+        styleClass: 'shift-style-off'
+      }
+    };
+
+    const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+    // App State
+    let state = {
+      currentMondayDate: getMondayOfCurrentWeek(),
+      staff: JSON.parse(JSON.stringify(DEFAULT_STAFF)),
+      schedules: {}, // Keyed by Monday ISO String: { [mondayISO]: { [staffId]: { [dayIdx]: shiftObj } } }
+      activeView: 'grid', // 'grid' or 'day'
+      selectedDayIdx: 0,
+      activeEditingSlot: null // { staffId, dayIdx }
+    };
+
+    // --- Date Utilities ---
+    function getMondayOfCurrentWeek(d = new Date()) {
+      const date = new Date(d);
+      const day = date.getDay(); // 0 is Sunday, 1 is Monday...
+      const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+      const monday = new Date(date.setDate(diff));
+      monday.setHours(0, 0, 0, 0);
+      return monday;
+    }
+
+    function formatDateISO(date) {
+      return date.toISOString().split('T')[0];
+    }
+
+    function getWeekDates(monday) {
+      const dates = [];
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + i);
+        dates.push(d);
+      }
+      return dates;
+    }
+
+    function formatShortDate(date) {
+      return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    }
+
+    // Convert 24-hr "HH:MM" to friendly "8:00 AM"
+    function formatTime12h(time24) {
+      if (!time24) return '';
+      const [hourStr, minStr] = time24.split(':');
+      let hour = parseInt(hourStr, 10);
+      const min = minStr || '00';
+      const ampm = hour >= 12 ? 'PM' : 'AM';
+      hour = hour % 12;
+      if (hour === 0) hour = 12;
+      return `${hour}:${min} ${ampm}`;
+    }
+
+    // Calculate duration between two "HH:MM" strings minus break
+    function calculateShiftHours(start, end, breakMins = 0) {
+      if (!start || !end) return 0;
+      const [startH, startM] = start.split(':').map(Number);
+      const [endH, endM] = end.split(':').map(Number);
+      
+      let totalStartMins = startH * 60 + startM;
+      let totalEndMins = endH * 60 + endM;
+
+      if (totalEndMins < totalStartMins) {
+        // Overnight shift support
+        totalEndMins += 24 * 60;
+      }
+
+      const diffMins = totalEndMins - totalStartMins - (Number(breakMins) || 0);
+      return diffMins > 0 ? parseFloat((diffMins / 60).toFixed(1)) : 0;
+    }
+
+    // --- Persistence (LocalStorage) ---
+    const STORAGE_KEY = 'shiftcraft_store_data_v1';
+
+    function saveState() {
+      try {
+        const payload = {
+          staff: state.staff,
+          schedules: state.schedules
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      } catch (e) {
+        console.warn('Unable to save to localStorage:', e);
+      }
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed.staff) && parsed.staff.length === 5) {
+            state.staff = parsed.staff.map((emp, idx) => ({
+              ...DEFAULT_STAFF[idx],
+              ...emp,
+              availability: Array.isArray(emp.availability) && emp.availability.length === 7
+                ? emp.availability
+                : (DEFAULT_STAFF[idx]?.availability || [true, true, true, true, true, true, true])
+            }));
+          }
+          if (parsed.schedules) {
+            state.schedules = parsed.schedules;
+          }
+        }
+      } catch (e) {
+        console.error('Error loading stored schedule:', e);
+      }
+    }
+
+    // Get or initialize schedule for current week
+    function getCurrentWeekSchedule() {
+      const key = formatDateISO(state.currentMondayDate);
+      if (!state.schedules[key]) {
+        state.schedules[key] = {};
+        state.staff.forEach(emp => {
+          state.schedules[key][emp.id] = {};
+          for (let day = 0; day < 7; day++) {
+            state.schedules[key][emp.id][day] = null;
+          }
+        });
+      }
+      return state.schedules[key];
+    }
+
+    // --- Toast Notification System ---
+    function showToast(message, type = 'info', duration = 3500) {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+
+      let icon = `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>`;
+      
+      if (type === 'error') {
+        icon = `
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="15" y1="9" x2="9" y2="15"></line>
+            <line x1="9" y1="9" x2="15" y2="15"></line>
+          </svg>`;
+      } else if (type === 'success') {
+        icon = `
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>`;
+      }
+
+      toast.innerHTML = `${icon}<span>${message}</span>`;
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(10px)';
+        setTimeout(() => toast.remove(), 250);
+      }, duration);
+    }
+
+    // --- Render Functions ---
+    function renderApp() {
+      updateWeekLabels();
+      renderStaffSummary();
+      renderScheduleTable();
+      renderDayView();
+      renderCoverageAnalytics();
+    }
+
+    function updateWeekLabels() {
+      const weekDates = getWeekDates(state.currentMondayDate);
+      const sunday = weekDates[6];
+
+      const rangeStr = `${formatShortDate(state.currentMondayDate)} – ${formatShortDate(sunday)}, ${sunday.getFullYear()}`;
+      document.getElementById('weekRangeDisplay').textContent = rangeStr;
+      document.getElementById('printWeekLabel').textContent = `Week of ${rangeStr}`;
+
+      // Update Table Headers
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      weekDates.forEach((d, idx) => {
+        const dateEl = document.getElementById(`date-day-${idx}`);
+        if (dateEl) {
+          const isToday = d.getTime() === today.getTime();
+          dateEl.innerHTML = `${formatShortDate(d)} ${isToday ? '<span class="day-today-tag">Today</span>' : ''}`;
+        }
+      });
+    }
+
+    // Calculate total hours scheduled for an employee in current week
+    function getEmployeeWeeklyHours(empId) {
+      const weekSched = getCurrentWeekSchedule();
+      const empSched = weekSched[empId] || {};
+      let total = 0;
+      for (let day = 0; day < 7; day++) {
+        const shift = empSched[day];
+        if (shift && shift.hours) {
+          total += Number(shift.hours);
+        }
+      }
+      return parseFloat(total.toFixed(1));
+    }
+
+    // Render Staff Top Cards (5 employees)
+    function renderStaffSummary() {
+      const container = document.getElementById('staffSummaryGrid');
+      container.innerHTML = '';
+
+      state.staff.forEach(emp => {
+        const hours = getEmployeeWeeklyHours(emp.id);
+        const target = Math.max(0, Number(emp.targetHours) || 0);
+        const pct = target > 0 ? Math.min(100, Math.round((hours / target) * 100)) : 0;
+        
+        let barColor = emp.color;
+        let overtimeBadge = '';
+
+        if (hours > 40) {
+          barColor = 'var(--danger)';
+          overtimeBadge = `<span class="ot-badge">⚠️ Overtime (+${(hours - 40).toFixed(1)}h)</span>`;
+        } else if (hours > target) {
+          barColor = 'var(--warning)';
+          overtimeBadge = `<span class="ot-badge" style="background:var(--warning-light); color:var(--warning-text); border-color:var(--warning-border);">+${(hours - target).toFixed(1)}h over target</span>`;
+        }
+
+        const card = document.createElement('div');
+        card.className = 'employee-card';
+        card.innerHTML = `
+          <div class="emp-card-header">
+            <div class="emp-avatar-group">
+              <div class="emp-avatar" style="background-color: ${emp.color};">
+                ${emp.initials || emp.name.charAt(0)}
+              </div>
+              <div>
+                <div class="emp-info-title" onclick="openStaffModal()" title="Click to edit employee settings">
+                  ${emp.name}
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                  </svg>
+                </div>
+                <div class="emp-info-role">${emp.role || 'Staff Member'}</div>
+              </div>
+            </div>
+            ${overtimeBadge}
+          </div>
+
+          <div class="emp-hours-meta">
+            <div>
+              <span class="emp-hours-val">${hours}</span>
+              <span style="font-size: 0.8rem; color: var(--slate-500);"> hrs scheduled</span>
+            </div>
+            <div class="emp-hours-target">Target: ${target}h</div>
+          </div>
+
+          <div class="progress-bar-bg" title="${pct}% of weekly target hours">
+            <div class="progress-bar-fill" style="width: ${pct}%; background-color: ${barColor};"></div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // Render Table Matrix
+    function renderScheduleTable() {
+      const tbody = document.getElementById('scheduleTableBody');
+      tbody.innerHTML = '';
+      const weekSched = getCurrentWeekSchedule();
+
+      state.staff.forEach(emp => {
+        const tr = document.createElement('tr');
+
+        // Sticky Left Column: Employee details
+        const tdEmp = document.createElement('td');
+        tdEmp.className = 'col-employee';
+        tdEmp.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div class="emp-avatar" style="background-color: ${emp.color}; width: 28px; height: 28px; font-size: 0.75rem;">
+              ${emp.initials || emp.name.charAt(0)}
+            </div>
+            <div style="overflow: hidden;">
+              <div style="font-weight: 700; font-size: 0.86rem; color: var(--slate-900); white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">${emp.name}</div>
+              <div style="font-size: 0.72rem; color: var(--slate-500); white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">${emp.role || ''}</div>
+            </div>
+          </div>
+        `;
+        tr.appendChild(tdEmp);
+
+        // 7 Days Columns
+        for (let day = 0; day < 7; day++) {
+          const td = document.createElement('td');
+          td.className = 'shift-slot-cell';
+          td.dataset.empId = emp.id;
+          td.dataset.day = day;
+
+          const shift = weekSched[emp.id] ? weekSched[emp.id][day] : null;
+          const isAvail = !emp.availability || emp.availability[day] !== false;
+
+          if (shift && shift.type !== 'off') {
+            const overrideTag = !isAvail 
+              ? `<div style="font-size: 0.65rem; color: var(--danger-text); font-weight: 700; margin-top: 2px;">⚠️ Unavail. Override</div>` 
+              : '';
+            td.innerHTML = `
+              <div class="shift-pill ${shift.styleClass || 'shift-style-custom'}" onclick="openShiftModal(${emp.id}, ${day})">
+                <div class="shift-pill-header">
+                  <span class="shift-pill-label">${escapeHtml(shift.label || 'Shift')}</span>
+                  <span class="shift-pill-hours">${shift.hours}h</span>
+                </div>
+                <div class="shift-pill-times">
+                  ${formatTime12h(shift.start)} – ${formatTime12h(shift.end)}
+                </div>
+                ${overrideTag}
+                ${shift.note ? `<div class="shift-pill-note" title="${escapeHtml(shift.note)}">📝 ${escapeHtml(shift.note)}</div>` : ''}
+              </div>
+            `;
+          } else if (shift && shift.type === 'off') {
+            td.innerHTML = `
+              <div class="shift-pill shift-style-off" onclick="openShiftModal(${emp.id}, ${day})">
+                <div class="shift-pill-header">
+                  <span class="shift-pill-label">🏖️ Off</span>
+                  <span class="shift-pill-hours">0h</span>
+                </div>
+                <div class="shift-pill-times" style="color: var(--slate-500); font-weight: normal;">Rest Day</div>
+              </div>
+            `;
+          } else {
+            if (!isAvail) {
+              td.innerHTML = `
+                <div class="empty-slot empty-slot-unavail" onclick="openShiftModal(${emp.id}, ${day})" title="${emp.name} is marked as unavailable on ${DAY_NAMES[day]}">
+                  <span style="font-weight: 700; color: var(--danger-text); font-size: 0.74rem;">✕ Unavailable</span>
+                  <span style="font-size: 0.66rem; color: var(--slate-500);">Click to assign</span>
+                </div>
+              `;
+            } else {
+              td.innerHTML = `
+                <div class="empty-slot" onclick="openShiftModal(${emp.id}, ${day})">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                  <span>Add Shift</span>
+                </div>
+              `;
+            }
+          }
+
+          tr.appendChild(td);
+        }
+
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Render Daily Coverage Analytics (Openers, Closers, Total Hours)
+    function renderCoverageAnalytics() {
+      const weekSched = getCurrentWeekSchedule();
+      const alerts = [];
+
+      for (let day = 0; day < 7; day++) {
+        let staffOnDuty = 0;
+        let openers = 0;
+        let closers = 0;
+        let dayHours = 0;
+
+        state.staff.forEach(emp => {
+          const shift = weekSched[emp.id] ? weekSched[emp.id][day] : null;
+          if (shift && shift.type !== 'off' && shift.hours > 0) {
+            staffOnDuty++;
+            dayHours += Number(shift.hours);
+
+            // Determine if opener (starts before or at 9am)
+            if (shift.start && parseInt(shift.start.split(':')[0], 10) <= 9) {
+              openers++;
+            }
+            // Determine if closer (ends at or after 6pm / 18:00)
+            if (shift.end && parseInt(shift.end.split(':')[0], 10) >= 18) {
+              closers++;
+            }
+          }
+        });
+
+        // Cell summary
+        const coverageCell = document.getElementById(`coverage-day-${day}`);
+        if (coverageCell) {
+          let warningTag = '';
+          if (staffOnDuty === 0) {
+            warningTag = `<span class="coverage-alert-chip">⚠️ Store Closed / No Staff</span>`;
+          } else if (openers === 0) {
+            warningTag = `<span class="coverage-alert-chip">⚠️ Needs Opener</span>`;
+          } else if (closers === 0) {
+            warningTag = `<span class="coverage-alert-chip">⚠️ Needs Closer</span>`;
+          }
+
+          coverageCell.innerHTML = `
+            <div class="coverage-box">
+              <div class="coverage-stat">
+                <span>Staff:</span> <strong>${staffOnDuty} / 5</strong>
+              </div>
+              <div class="coverage-stat" style="font-size: 0.7rem; color: var(--slate-600);">
+                <span>🌅 Open: ${openers}</span>
+                <span>🌙 Close: ${closers}</span>
+              </div>
+              <div class="coverage-stat" style="font-size: 0.7rem; color: var(--slate-500);">
+                <span>Total:</span> <span>${dayHours.toFixed(1)} hrs</span>
+              </div>
+              ${warningTag}
+            </div>
+          `;
+        }
+
+        // Daily alert collection
+        if (openers === 0 && staffOnDuty > 0) {
+          alerts.push(`<strong>${DAY_NAMES[day]}</strong> is missing an opening shift staff member.`);
+        }
+        if (closers === 0 && staffOnDuty > 0) {
+          alerts.push(`<strong>${DAY_NAMES[day]}</strong> is missing a closing shift staff member.`);
+        }
+      }
+
+      // Check for any overtime (> 40 hrs)
+      state.staff.forEach(emp => {
+        const hrs = getEmployeeWeeklyHours(emp.id);
+        if (hrs > 40) {
+          alerts.push(`Friendly notice: <strong>${emp.name}</strong> is scheduled for ${hrs} hours (${(hrs - 40).toFixed(1)}h overtime).`);
+        }
+      });
+
+      // Check for any shifts scheduled on unavailable days
+      state.staff.forEach(emp => {
+        for (let day = 0; day < 7; day++) {
+          const shift = weekSched[emp.id] ? weekSched[emp.id][day] : null;
+          const isAvail = !emp.availability || emp.availability[day] !== false;
+          if (shift && shift.type !== 'off' && !isAvail) {
+            alerts.push(`Availability override: <strong>${emp.name}</strong> is scheduled on <strong>${DAY_NAMES[day]}</strong> (marked as unavailable).`);
+          }
+        }
+      });
+
+      // Display coverage banner
+      const bannerContainer = document.getElementById('coverageAlertContainer');
+      if (alerts.length > 0) {
+        bannerContainer.innerHTML = `
+          <div class="alert-banner warning">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0; margin-top: 1px;">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+            <div>
+              <div style="font-weight: 700; margin-bottom: 2px;">Store Coverage & Hours Reminders:</div>
+              <ul style="margin-left: 18px; display: flex; flex-direction: column; gap: 2px;">
+                ${alerts.map(a => `<li>${a}</li>`).join('')}
+              </ul>
+            </div>
+          </div>
+        `;
+      } else {
+        bannerContainer.innerHTML = `
+          <div class="alert-banner info">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--primary); flex-shrink:0;">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+            <div>
+              <strong>Schedule looks great!</strong> Every day has morning and closing coverage, and all staff are balanced within hours.
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    // Render Mobile Day View
+    function renderDayView() {
+      const scrollBar = document.getElementById('daySelectorScroll');
+      scrollBar.innerHTML = '';
+      const weekDates = getWeekDates(state.currentMondayDate);
+
+      DAY_NAMES.forEach((name, idx) => {
+        const btn = document.createElement('button');
+        btn.className = `day-chip-btn ${state.selectedDayIdx === idx ? 'active' : ''}`;
+        btn.onclick = () => selectDayView(idx);
+        btn.innerHTML = `
+          <span class="day-chip-title">${name.slice(0, 3)}</span>
+          <span class="day-chip-date">${formatShortDate(weekDates[idx])}</span>
+        `;
+        scrollBar.appendChild(btn);
+      });
+
+      // Cards for each of the 5 employees for this day
+      const cardsContainer = document.getElementById('dayViewCards');
+      cardsContainer.innerHTML = '';
+      const weekSched = getCurrentWeekSchedule();
+      const currentDay = state.selectedDayIdx;
+
+      state.staff.forEach(emp => {
+        const item = document.createElement('div');
+        item.className = 'day-employee-item';
+
+        const shift = weekSched[emp.id] ? weekSched[emp.id][currentDay] : null;
+        const isAvail = !emp.availability || emp.availability[currentDay] !== false;
+
+        let slotHtml = '';
+        if (shift && shift.type !== 'off') {
+          const overrideTag = !isAvail 
+            ? `<div style="font-size:0.68rem; color:var(--danger-text); font-weight:700; margin-top:2px;">⚠️ Unavailable Override</div>` 
+            : '';
+          slotHtml = `
+            <div class="shift-pill ${shift.styleClass || 'shift-style-custom'}" onclick="openShiftModal(${emp.id}, ${currentDay})" style="height: auto; padding: 8px 12px;">
+              <div class="shift-pill-header">
+                <span class="shift-pill-label">${escapeHtml(shift.label || 'Shift')}</span>
+                <span class="shift-pill-hours">${shift.hours}h</span>
+              </div>
+              <div class="shift-pill-times">${formatTime12h(shift.start)} – ${formatTime12h(shift.end)}</div>
+              ${overrideTag}
+            </div>
+          `;
+        } else if (shift && shift.type === 'off') {
+          slotHtml = `
+            <div class="shift-pill shift-style-off" onclick="openShiftModal(${emp.id}, ${currentDay})" style="height: auto; padding: 8px 12px;">
+              <span class="shift-pill-label">🏖️ Off (Rest Day)</span>
+            </div>
+          `;
+        } else {
+          if (!isAvail) {
+            slotHtml = `
+              <button class="btn btn-secondary" onclick="openShiftModal(${emp.id}, ${currentDay})" style="width: 100%; border-color: var(--danger-border); color: var(--danger-text); background: var(--danger-light); font-size: 0.78rem;">
+                ✕ Unavailable (Tap to assign)
+              </button>
+            `;
+          } else {
+            slotHtml = `
+              <button class="btn btn-secondary" onclick="openShiftModal(${emp.id}, ${currentDay})" style="width: 100%;">
+                + Assign Shift
+              </button>
+            `;
+          }
+        }
+
+        item.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div class="emp-avatar" style="background-color: ${emp.color};">
+              ${emp.initials || emp.name.charAt(0)}
+            </div>
+            <div>
+              <div style="font-weight: 700; font-size: 0.95rem;">${emp.name}</div>
+              <div style="font-size: 0.75rem; color: var(--slate-500);">${emp.role || ''}</div>
+            </div>
+          </div>
+          <div class="day-employee-slot">
+            ${slotHtml}
+          </div>
+        `;
+        cardsContainer.appendChild(item);
+      });
+    }
+
+    function selectDayView(dayIdx) {
+      state.selectedDayIdx = dayIdx;
+      renderDayView();
+    }
+
+    function switchView(viewName) {
+      state.activeView = viewName;
+      if (viewName === 'grid') {
+        document.getElementById('gridView').style.display = 'block';
+        document.getElementById('dayView').style.display = 'none';
+        document.getElementById('tabGrid').classList.add('active');
+        document.getElementById('tabDay').classList.remove('active');
+      } else {
+        document.getElementById('gridView').style.display = 'none';
+        document.getElementById('dayView').style.display = 'block';
+        document.getElementById('tabGrid').classList.remove('active');
+        document.getElementById('tabDay').classList.add('active');
+        renderDayView();
+      }
+    }
+
+    // --- Week Navigation ---
+    function shiftWeek(offsetWeeks) {
+      const newMonday = new Date(state.currentMondayDate);
+      newMonday.setDate(newMonday.getDate() + offsetWeeks * 7);
+      state.currentMondayDate = newMonday;
+      renderApp();
+    }
+
+    function goToCurrentWeek() {
+      state.currentMondayDate = getMondayOfCurrentWeek();
+      renderApp();
+      showToast('Switched to current calendar week.', 'info');
+    }
+
+    // --- Shift Assignment Modal Handlers ---
+    function openShiftModal(staffId, dayIdx) {
+      state.activeEditingSlot = { staffId, dayIdx };
+      const emp = state.staff.find(e => e.id === staffId);
+      const dayName = DAY_NAMES[dayIdx];
+      const weekDates = getWeekDates(state.currentMondayDate);
+      const dateStr = formatShortDate(weekDates[dayIdx]);
+
+      document.getElementById('shiftModalTitle').textContent = `Assign Shift for ${emp.name}`;
+      document.getElementById('shiftModalSubtitle').textContent = `${dayName}, ${dateStr} • ${emp.role || 'Staff'}`;
+
+      // Check availability and show warning in modal
+      const isAvailable = !emp.availability || emp.availability[dayIdx] !== false;
+      const alertContainer = document.getElementById('shiftModalAvailabilityAlert');
+      if (alertContainer) {
+        if (!isAvailable) {
+          alertContainer.innerHTML = `
+            <div class="alert-banner warning" style="margin-bottom: 14px; padding: 10px 14px; font-size: 0.83rem;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+              </svg>
+              <div>
+                <strong>Availability Warning:</strong> ${emp.name} is marked as <strong>UNAVAILABLE</strong> on ${dayName}. Scheduling a shift will require confirmation.
+              </div>
+            </div>
+          `;
+        } else {
+          alertContainer.innerHTML = '';
+        }
+      }
+
+      const weekSched = getCurrentWeekSchedule();
+      const currentShift = weekSched[staffId] ? weekSched[staffId][dayIdx] : null;
+
+      const startInput = document.getElementById('shiftStartTime');
+      const endInput = document.getElementById('shiftEndTime');
+      const breakInput = document.getElementById('shiftBreakMins');
+      const labelInput = document.getElementById('shiftLabel');
+      const noteInput = document.getElementById('shiftNotes');
+
+      if (currentShift && currentShift.type !== 'off') {
+        startInput.value = currentShift.start || '09:00';
+        endInput.value = currentShift.end || '17:00';
+        breakInput.value = currentShift.breakMins ?? 30;
+        labelInput.value = currentShift.label || '';
+        noteInput.value = currentShift.note || '';
+      } else {
+        // Defaults
+        startInput.value = '09:00';
+        endInput.value = '17:00';
+        breakInput.value = '30';
+        labelInput.value = 'Custom';
+        noteInput.value = '';
+      }
+
+      validateShiftTimes();
+      document.getElementById('shiftModal').classList.add('open');
+    }
+
+    function closeShiftModal() {
+      document.getElementById('shiftModal').classList.remove('open');
+      state.activeEditingSlot = null;
+    }
+
+    function applyPreset(presetKey) {
+      if (!state.activeEditingSlot) return;
+      const { staffId, dayIdx } = state.activeEditingSlot;
+      const preset = PRESETS[presetKey];
+      if (!preset) return;
+
+      if (preset.type !== 'off') {
+        const emp = state.staff.find(e => e.id === staffId);
+        const isAvailable = !emp.availability || emp.availability[dayIdx] !== false;
+        if (!isAvailable) {
+          const dayName = DAY_NAMES[dayIdx];
+          const confirmed = window.confirm(`⚠️ Employee Availability Warning:\n\n${emp.name} is marked as UNAVAILABLE on ${dayName}.\n\nDo you want to override their availability and schedule this ${preset.label} shift?`);
+          if (!confirmed) {
+            return;
+          }
+        }
+      }
+
+      const weekSched = getCurrentWeekSchedule();
+      weekSched[staffId][dayIdx] = {
+        type: preset.type,
+        label: preset.label,
+        start: preset.start,
+        end: preset.end,
+        breakMins: preset.breakMins,
+        hours: preset.hours,
+        styleClass: preset.styleClass,
+        note: ''
+      };
+
+      saveState();
+      renderApp();
+      closeShiftModal();
+      showToast(`Assigned ${preset.label} shift (${preset.hours}h).`, 'success');
+    }
+
+    function setSlotOff() {
+      if (!state.activeEditingSlot) return;
+      const { staffId, dayIdx } = state.activeEditingSlot;
+      const weekSched = getCurrentWeekSchedule();
+      
+      weekSched[staffId][dayIdx] = {
+        type: 'off',
+        label: 'Off',
+        start: '',
+        end: '',
+        breakMins: 0,
+        hours: 0,
+        styleClass: 'shift-style-off',
+        note: ''
+      };
+
+      saveState();
+      renderApp();
+      closeShiftModal();
+      showToast('Marked as Rest / Off day.', 'info');
+    }
+
+    function validateShiftTimes() {
+      const start = document.getElementById('shiftStartTime').value;
+      const end = document.getElementById('shiftEndTime').value;
+      const breakMins = parseInt(document.getElementById('shiftBreakMins').value || '0', 10);
+      const errorEl = document.getElementById('shiftTimeError');
+      const btnSave = document.getElementById('btnSaveShift');
+
+      if (!start || !end) {
+        errorEl.classList.add('show');
+        errorEl.textContent = 'Please choose both a start time and an end time.';
+        btnSave.disabled = true;
+        return false;
+      }
+
+      const hours = calculateShiftHours(start, end, breakMins);
+      if (hours <= 0) {
+        errorEl.classList.add('show');
+        errorEl.textContent = 'Notice: Shift hours must be greater than zero. Check start, end, and break minutes.';
+        btnSave.disabled = true;
+        return false;
+      }
+
+      errorEl.classList.remove('show');
+      btnSave.disabled = false;
+      return true;
+    }
+
+    function saveShiftFromModal() {
+      if (!state.activeEditingSlot) return;
+      if (!validateShiftTimes()) return;
+
+      const { staffId, dayIdx } = state.activeEditingSlot;
+      const emp = state.staff.find(e => e.id === staffId);
+      const isAvailable = !emp.availability || emp.availability[dayIdx] !== false;
+      if (!isAvailable) {
+        const dayName = DAY_NAMES[dayIdx];
+        const confirmed = window.confirm(`⚠️ Employee Availability Warning:\n\n${emp.name} is marked as UNAVAILABLE on ${dayName}.\n\nDo you want to override their availability and save this shift?`);
+        if (!confirmed) {
+          return;
+        }
+      }
+
+      const start = document.getElementById('shiftStartTime').value;
+      const end = document.getElementById('shiftEndTime').value;
+      const breakMins = parseInt(document.getElementById('shiftBreakMins').value || '0', 10);
+      const label = document.getElementById('shiftLabel').value.trim() || 'Custom';
+      const note = document.getElementById('shiftNotes').value.trim();
+
+      const hours = calculateShiftHours(start, end, breakMins);
+
+      const weekSched = getCurrentWeekSchedule();
+      weekSched[staffId][dayIdx] = {
+        type: 'custom',
+        label: label,
+        start: start,
+        end: end,
+        breakMins: breakMins,
+        hours: hours,
+        styleClass: 'shift-style-custom',
+        note: note
+      };
+
+      saveState();
+      renderApp();
+      closeShiftModal();
+      showToast(`Saved ${label} shift (${hours}h).`, 'success');
+    }
+
+    // --- Staff Management Modal ---
+    function openStaffModal() {
+      const container = document.getElementById('staffModalList');
+      container.innerHTML = '';
+
+      state.staff.forEach((emp, index) => {
+        const item = document.createElement('div');
+        item.style.padding = '12px';
+        item.style.border = '1px solid var(--slate-200)';
+        item.style.borderRadius = 'var(--radius-md)';
+        item.style.marginBottom = '10px';
+        item.style.background = 'var(--slate-50)';
+
+        item.innerHTML = `
+          <div style="font-weight: 700; font-size: 0.85rem; margin-bottom: 8px; color: var(--slate-700);">
+            Employee #${index + 1}
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Full Name</label>
+              <input type="text" class="form-input" id="staff-name-${emp.id}" value="${escapeHtml(emp.name)}">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Store Role / Title</label>
+              <input type="text" class="form-input" id="staff-role-${emp.id}" value="${escapeHtml(emp.role)}">
+            </div>
+          </div>
+          <div class="form-row" style="margin-top: 8px;">
+            <div class="form-group">
+              <label class="form-label" for="staff-target-${emp.id}">Weekly Target Hours</label>
+              <input type="number" class="form-input" id="staff-target-${emp.id}" value="${emp.targetHours}" min="0" max="80" step="1" onkeydown="if(event.key === '-') event.preventDefault();" oninput="validateStaffTargetHours(${emp.id})">
+              <div class="form-error-inline" id="staff-error-target-${emp.id}">
+                Friendly notice: Target hours cannot be negative. There can't be negative hours!
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="staff-color-${emp.id}">Color Theme</label>
+              <input type="color" class="form-input" id="staff-color-${emp.id}" value="${emp.color}" style="height: 40px; padding: 2px 6px;">
+            </div>
+          </div>
+          <div style="margin-top: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <label class="form-label" style="margin-bottom: 0;">Weekly Availability</label>
+              <span style="font-size: 0.72rem; color: var(--slate-500);">Tap day to toggle Available / Off</span>
+            </div>
+            <div class="availability-days-grid" id="staff-avail-${emp.id}">
+              ${DAY_NAMES.map((dName, dayIdx) => {
+                const isAvail = !emp.availability || emp.availability[dayIdx] !== false;
+                const shortDay = dName.slice(0, 3);
+                return `
+                  <button type="button" 
+                    class="avail-chip-btn ${isAvail ? 'is-available' : 'is-unavailable'}" 
+                    id="avail-btn-${emp.id}-${dayIdx}"
+                    data-available="${isAvail}"
+                    onclick="toggleAvailabilityChip(${emp.id}, ${dayIdx})"
+                    title="${dName}: Tap to toggle availability">
+                    <span>${isAvail ? '✓' : '✕'} ${shortDay}</span>
+                    <span class="avail-status-tag">${isAvail ? 'Avail' : 'Off'}</span>
+                  </button>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `;
+        container.appendChild(item);
+      });
+
+      document.getElementById('staffModal').classList.add('open');
+    }
+
+    function toggleAvailabilityChip(empId, dayIdx) {
+      const btn = document.getElementById(`avail-btn-${empId}-${dayIdx}`);
+      if (!btn) return;
+      const wasAvailable = btn.getAttribute('data-available') === 'true';
+      const newAvailable = !wasAvailable;
+      
+      btn.setAttribute('data-available', String(newAvailable));
+      const shortDay = DAY_NAMES[dayIdx].slice(0, 3);
+
+      if (newAvailable) {
+        btn.className = 'avail-chip-btn is-available';
+        btn.innerHTML = `<span>✓ ${shortDay}</span><span class="avail-status-tag">Avail</span>`;
+      } else {
+        btn.className = 'avail-chip-btn is-unavailable';
+        btn.innerHTML = `<span>✕ ${shortDay}</span><span class="avail-status-tag">Off</span>`;
+      }
+    }
+
+    function closeStaffModal() {
+      document.getElementById('staffModal').classList.remove('open');
+    }
+
+    function validateStaffTargetHours(empId) {
+      const input = document.getElementById(`staff-target-${empId}`);
+      const errorEl = document.getElementById(`staff-error-target-${empId}`);
+      if (!input || !errorEl) return true;
+
+      const rawVal = input.value.trim();
+      const numVal = parseFloat(rawVal);
+
+      if (rawVal === '' || isNaN(numVal)) {
+        input.style.borderColor = 'var(--danger)';
+        errorEl.textContent = "Friendly notice: Please enter weekly target hours (0 or more).";
+        errorEl.classList.add('show');
+        return false;
+      }
+
+      if (numVal < 0 || rawVal.includes('-')) {
+        input.style.borderColor = 'var(--danger)';
+        errorEl.textContent = "Friendly notice: Target hours cannot be negative. There can't be negative hours!";
+        errorEl.classList.add('show');
+        return false;
+      }
+
+      input.style.borderColor = '';
+      errorEl.classList.remove('show');
+      return true;
+    }
+
+    function saveStaffModal() {
+      // 1. Validate employee names
+      for (let emp of state.staff) {
+        const nameInput = document.getElementById(`staff-name-${emp.id}`);
+        const nameVal = nameInput ? nameInput.value.trim() : '';
+        if (!nameVal) {
+          showToast(`Friendly notice: Employee #${emp.id} needs a name so the schedule remains clear.`, 'error');
+          if (nameInput) nameInput.focus();
+          return;
+        }
+      }
+
+      // 2. Validate target hours for all employees
+      for (let emp of state.staff) {
+        const isValid = validateStaffTargetHours(emp.id);
+        const targetInput = document.getElementById(`staff-target-${emp.id}`);
+        const targetVal = targetInput ? parseFloat(targetInput.value) : 0;
+
+        if (!isValid || isNaN(targetVal) || targetVal < 0) {
+          showToast(`Friendly notice: Target hours for ${emp.name} cannot be negative. There can't be negative hours!`, 'error');
+          if (targetInput) targetInput.focus();
+          return;
+        }
+      }
+
+      state.staff.forEach(emp => {
+        emp.name = document.getElementById(`staff-name-${emp.id}`).value.trim();
+        emp.role = document.getElementById(`staff-role-${emp.id}`).value.trim();
+        emp.targetHours = Math.max(0, parseInt(document.getElementById(`staff-target-${emp.id}`).value, 10) || 0);
+        emp.color = document.getElementById(`staff-color-${emp.id}`).value;
+        
+        // Save 7-day availability
+        const newAvail = [];
+        for (let day = 0; day < 7; day++) {
+          const btn = document.getElementById(`avail-btn-${emp.id}-${day}`);
+          newAvail.push(btn ? btn.getAttribute('data-available') === 'true' : true);
+        }
+        emp.availability = newAvail;
+
+        // Generate friendly initials
+        const parts = emp.name.split(' ').filter(Boolean);
+        emp.initials = parts.length >= 2 
+          ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase() 
+          : emp.name.slice(0, 2).toUpperCase();
+      });
+
+      saveState();
+      renderApp();
+      closeStaffModal();
+      showToast('Staff profiles and availability updated successfully!', 'success');
+    }
+
+    // --- Manager Tool: Copy Schedule Summary to Clipboard ---
+    function copyScheduleToClipboard() {
+      const weekSched = getCurrentWeekSchedule();
+      const weekDates = getWeekDates(state.currentMondayDate);
+      const rangeStr = `${formatShortDate(state.currentMondayDate)} – ${formatShortDate(weekDates[6])}, ${weekDates[6].getFullYear()}`;
+
+      let text = `📅 STORE SCHEDULE (Week of ${rangeStr})\n`;
+      text += `-------------------------------------------\n\n`;
+
+      DAY_NAMES.forEach((dayName, dayIdx) => {
+        const dateStr = formatShortDate(weekDates[dayIdx]);
+        text += `🔹 ${dayName.toUpperCase()} (${dateStr}):\n`;
+        
+        let anyScheduled = false;
+        state.staff.forEach(emp => {
+          const shift = weekSched[emp.id] ? weekSched[emp.id][dayIdx] : null;
+          if (shift && shift.type !== 'off' && shift.hours > 0) {
+            anyScheduled = true;
+            text += `  • ${emp.name}: ${shift.label} (${formatTime12h(shift.start)} – ${formatTime12h(shift.end)}) [${shift.hours}h]${shift.note ? ' - Note: ' + shift.note : ''}\n`;
+          } else if (shift && shift.type === 'off') {
+            text += `  • ${emp.name}: OFF\n`;
+          }
+        });
+
+        if (!anyScheduled) {
+          text += `  (No shifts scheduled)\n`;
+        }
+        text += `\n`;
+      });
+
+      text += `-------------------------------------------\n`;
+      text += `WEEKLY TOTALS:\n`;
+      state.staff.forEach(emp => {
+        const hrs = getEmployeeWeeklyHours(emp.id);
+        text += `• ${emp.name}: ${hrs} hrs (Target: ${emp.targetHours}h)\n`;
+      });
+
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('Schedule copied to clipboard! Ready to paste into SMS or group chat.', 'success');
+      }).catch(() => {
+        showToast('Please allow clipboard permissions or copy manually.', 'error');
+      });
+    }
+
+    // --- Load Realistic Sample Schedule ---
+    function loadSampleSchedule() {
+      const weekSched = getCurrentWeekSchedule();
+      
+      // A realistic 5-employee balanced retail store schedule
+      const samplePlan = {
+        1: [ 'open', 'open', 'open', 'open', 'open', 'off',  'off'  ], // Alex: Mon-Fri opener
+        2: [ 'mid',  'off',  'mid',  'mid',  'off',  'open', 'open' ], // Jordan: Mid & Weekend opener
+        3: [ 'off',  'mid',  'off',  'off',  'mid',  'mid',  'mid'  ], // Taylor: Part-time mid
+        4: [ 'close','close','off',  'close','close','off',  'off'  ], // Morgan: Weekday closer
+        5: [ 'off',  'off',  'close','off',  'full', 'close','close']  // Casey: Supv & Weekend closer
+      };
+
+      state.staff.forEach(emp => {
+        const shifts = samplePlan[emp.id] || [];
+        shifts.forEach((presetKey, dayIdx) => {
+          const preset = PRESETS[presetKey];
+          if (preset) {
+            weekSched[emp.id][dayIdx] = {
+              type: preset.type,
+              label: preset.label,
+              start: preset.start,
+              end: preset.end,
+              breakMins: preset.breakMins,
+              hours: preset.hours,
+              styleClass: preset.styleClass,
+              note: ''
+            };
+          }
+        });
+      });
+
+      saveState();
+      renderApp();
+      showToast('Loaded a realistic balanced sample schedule for this week!', 'success');
+    }
+
+    // --- Clear Week with Safeguard ---
+    function confirmClearWeek() {
+      if (confirm('Are you sure you want to clear all shifts for this week?')) {
+        const key = formatDateISO(state.currentMondayDate);
+        state.schedules[key] = {};
+        state.staff.forEach(emp => {
+          state.schedules[key][emp.id] = {};
+          for (let day = 0; day < 7; day++) {
+            state.schedules[key][emp.id][day] = null;
+          }
+        });
+        saveState();
+        renderApp();
+        showToast('This week\'s schedule has been cleared.', 'info');
+      }
+    }
+
+    // Utility: HTML Escape for security
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // --- Initialization ---
+    window.addEventListener('DOMContentLoaded', () => {
+      loadState();
+      renderApp();
+    });
+
+  </script>
+</body>
+</html>
