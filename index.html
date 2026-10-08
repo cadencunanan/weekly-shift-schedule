@@ -235,6 +235,25 @@
       background: #fee2e2;
     }
 
+    .btn:disabled,
+    .btn[disabled] {
+      opacity: 0.42;
+      cursor: not-allowed !important;
+      pointer-events: none;
+      box-shadow: none !important;
+      transform: none !important;
+    }
+
+    .desktop-only-text {
+      display: inline;
+    }
+
+    @media (max-width: 640px) {
+      .desktop-only-text {
+        display: none;
+      }
+    }
+
     /* --- Main Layout Container --- */
     .main-container {
       max-width: 1400px;
@@ -1181,6 +1200,24 @@
           </button>
         </div>
 
+        <!-- Undo & Redo Action Controls -->
+        <div style="display: flex; gap: 4px; align-items: center;">
+          <button class="btn btn-secondary" id="btnUndo" onclick="undoScheduleChange()" title="Undo last change (Ctrl+Z)" disabled aria-label="Undo">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="1 4 1 10 7 10"></polyline>
+              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+            </svg>
+            <span class="desktop-only-text">Undo</span>
+          </button>
+          <button class="btn btn-secondary" id="btnRedo" onclick="redoScheduleChange()" title="Redo change (Ctrl+Y)" disabled aria-label="Redo">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+            </svg>
+            <span class="desktop-only-text">Redo</span>
+          </button>
+        </div>
+
         <!-- Manager Quick Actions -->
         <button class="btn btn-secondary" onclick="copyScheduleToClipboard()" title="Copy schedule summary formatted for WhatsApp or SMS">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1535,6 +1572,96 @@
       selectedDayIdx: 0,
       activeEditingSlot: null // { staffId, dayIdx }
     };
+
+    // --- Undo & Redo History State ---
+    let undoStack = [];
+    let redoStack = [];
+    const MAX_HISTORY = 40;
+
+    function recordHistory(description = '') {
+      const snapshot = {
+        schedules: JSON.parse(JSON.stringify(state.schedules)),
+        mondayISO: formatDateISO(state.currentMondayDate),
+        desc: description
+      };
+      undoStack.push(snapshot);
+      if (undoStack.length > MAX_HISTORY) {
+        undoStack.shift();
+      }
+      redoStack = []; // New change clears redo branch
+      updateUndoRedoButtons();
+    }
+
+    function undoScheduleChange() {
+      if (undoStack.length === 0) return;
+
+      const currentSnapshot = {
+        schedules: JSON.parse(JSON.stringify(state.schedules)),
+        mondayISO: formatDateISO(state.currentMondayDate),
+        desc: 'Current State'
+      };
+      redoStack.push(currentSnapshot);
+      if (redoStack.length > MAX_HISTORY) {
+        redoStack.shift();
+      }
+
+      const prevSnapshot = undoStack.pop();
+      state.schedules = prevSnapshot.schedules;
+
+      if (prevSnapshot.mondayISO) {
+        const [y, m, d] = prevSnapshot.mondayISO.split('-').map(Number);
+        state.currentMondayDate = new Date(y, m - 1, d);
+      }
+
+      saveState();
+      renderApp();
+      updateUndoRedoButtons();
+      showToast(`Undid change: ${prevSnapshot.desc || 'reverted last edit'}.`, 'info');
+    }
+
+    function redoScheduleChange() {
+      if (redoStack.length === 0) return;
+
+      const currentSnapshot = {
+        schedules: JSON.parse(JSON.stringify(state.schedules)),
+        mondayISO: formatDateISO(state.currentMondayDate),
+        desc: 'Prior State'
+      };
+      undoStack.push(currentSnapshot);
+      if (undoStack.length > MAX_HISTORY) {
+        undoStack.shift();
+      }
+
+      const nextSnapshot = redoStack.pop();
+      state.schedules = nextSnapshot.schedules;
+
+      if (nextSnapshot.mondayISO) {
+        const [y, m, d] = nextSnapshot.mondayISO.split('-').map(Number);
+        state.currentMondayDate = new Date(y, m - 1, d);
+      }
+
+      saveState();
+      renderApp();
+      updateUndoRedoButtons();
+      showToast(`Restored change: ${nextSnapshot.desc || 'reapplied edit'}.`, 'info');
+    }
+
+    function updateUndoRedoButtons() {
+      const btnUndo = document.getElementById('btnUndo');
+      const btnRedo = document.getElementById('btnRedo');
+      if (btnUndo) {
+        btnUndo.disabled = undoStack.length === 0;
+        btnUndo.title = undoStack.length > 0 
+          ? `Undo: ${undoStack[undoStack.length - 1].desc || 'last change'} (Ctrl+Z)` 
+          : 'Nothing to undo (Ctrl+Z)';
+      }
+      if (btnRedo) {
+        btnRedo.disabled = redoStack.length === 0;
+        btnRedo.title = redoStack.length > 0 
+          ? `Redo: ${redoStack[redoStack.length - 1].desc || 'next change'} (Ctrl+Y)` 
+          : 'Nothing to redo (Ctrl+Y)';
+      }
+    }
 
     // --- Date Utilities ---
     function getMondayOfCurrentWeek(d = new Date()) {
@@ -2200,6 +2327,8 @@
         }
       }
 
+      recordHistory(`Assign ${preset.label} to ${state.staff.find(e => e.id === staffId)?.name || 'staff'}`);
+
       const weekSched = getCurrentWeekSchedule();
       weekSched[staffId][dayIdx] = {
         type: preset.type,
@@ -2221,6 +2350,9 @@
     function setSlotOff() {
       if (!state.activeEditingSlot) return;
       const { staffId, dayIdx } = state.activeEditingSlot;
+
+      recordHistory(`Set Day Off for ${state.staff.find(e => e.id === staffId)?.name || 'staff'}`);
+
       const weekSched = getCurrentWeekSchedule();
       
       weekSched[staffId][dayIdx] = {
@@ -2289,6 +2421,8 @@
       const note = document.getElementById('shiftNotes').value.trim();
 
       const hours = calculateShiftHours(start, end, breakMins);
+
+      recordHistory(`Shift for ${emp.name} (${label})`);
 
       const weekSched = getCurrentWeekSchedule();
       weekSched[staffId][dayIdx] = {
@@ -2525,6 +2659,7 @@
 
     // --- Load Realistic Sample Schedule ---
     function loadSampleSchedule() {
+      recordHistory('Load Sample Schedule');
       const weekSched = getCurrentWeekSchedule();
       
       // A realistic 5-employee balanced retail store schedule
@@ -2653,6 +2788,8 @@
         return;
       }
 
+      recordHistory('Copy Previous Week');
+
       // 5. Deep copy previous week's shifts into current week
       if (!state.schedules[currentKey]) {
         state.schedules[currentKey] = {};
@@ -2684,6 +2821,7 @@
     // --- Clear Week with Safeguard ---
     function confirmClearWeek() {
       if (confirm('Are you sure you want to clear all shifts for this week?')) {
+        recordHistory('Clear Week');
         const key = formatDateISO(state.currentMondayDate);
         state.schedules[key] = {};
         state.staff.forEach(emp => {
@@ -2713,6 +2851,28 @@
     window.addEventListener('DOMContentLoaded', () => {
       loadState();
       renderApp();
+      updateUndoRedoButtons();
+    });
+
+    // Keyboard Shortcuts for Undo (Ctrl+Z) and Redo (Ctrl+Y, Ctrl+Shift+Z)
+    window.addEventListener('keydown', (e) => {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && !e.altKey) {
+        if (e.key === 'z' || e.key === 'Z') {
+          if (e.shiftKey) {
+            e.preventDefault();
+            redoScheduleChange();
+          } else {
+            e.preventDefault();
+            undoScheduleChange();
+          }
+        } else if (e.key === 'y' || e.key === 'Y') {
+          e.preventDefault();
+          redoScheduleChange();
+        }
+      }
     });
 
   </script>
