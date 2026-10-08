@@ -1247,8 +1247,15 @@
         <span class="legend-chip shift-style-off">Off / Rest</span>
       </div>
 
-      <!-- Store Tools Menu (Reset / Sample) -->
-      <div style="display: flex; gap: 8px;">
+      <!-- Store Tools Menu (Copy Previous Week / Load Sample / Clear Week) -->
+      <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+        <button class="btn btn-secondary" style="font-size: 0.78rem;" onclick="copyPreviousWeek()" title="Duplicate the previous week's shifts into this week">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="1 4 1 10 7 10"></polyline>
+            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+          </svg>
+          Copy Previous Week
+        </button>
         <button class="btn btn-ghost" style="font-size: 0.78rem;" onclick="loadSampleSchedule()">
           Load Sample
         </button>
@@ -2551,6 +2558,127 @@
       saveState();
       renderApp();
       showToast('Loaded a realistic balanced sample schedule for this week!', 'success');
+    }
+
+    // --- Manager Tool: Copy Previous Week Shifts to Current Week ---
+    function copyPreviousWeek() {
+      const prevMonday = new Date(state.currentMondayDate);
+      prevMonday.setDate(prevMonday.getDate() - 7);
+      const prevKey = formatDateISO(prevMonday);
+      const currentKey = formatDateISO(state.currentMondayDate);
+
+      const prevDates = getWeekDates(prevMonday);
+      const currDates = getWeekDates(state.currentMondayDate);
+      const prevLabel = `${formatShortDate(prevDates[0])} – ${formatShortDate(prevDates[6])}`;
+      const currLabel = `${formatShortDate(currDates[0])} – ${formatShortDate(currDates[6])}`;
+
+      const prevSched = state.schedules[prevKey];
+
+      // 1. Check if previous week exists and has shifts
+      let prevShiftCount = 0;
+      if (prevSched) {
+        state.staff.forEach(emp => {
+          const empShifts = prevSched[emp.id] || {};
+          for (let d = 0; d < 7; d++) {
+            const shift = empShifts[d];
+            if (shift && shift.type !== 'off' && shift.hours > 0) {
+              prevShiftCount++;
+            }
+          }
+        });
+      }
+
+      if (!prevSched || prevShiftCount === 0) {
+        showToast(`Friendly notice: No shifts were found in the previous week (${prevLabel}). Navigate to last week to add shifts first, or load a sample week!`, 'error', 4500);
+        return;
+      }
+
+      // 2. Check if current week already has scheduled shifts (overwrite protection)
+      const currSched = state.schedules[currentKey];
+      let currShiftCount = 0;
+      if (currSched) {
+        state.staff.forEach(emp => {
+          const empShifts = currSched[emp.id] || {};
+          for (let d = 0; d < 7; d++) {
+            const shift = empShifts[d];
+            if (shift && shift.type !== 'off' && shift.hours > 0) {
+              currShiftCount++;
+            }
+          }
+        });
+      }
+
+      // 3. Check for employee availability conflicts in the current week
+      const conflicts = [];
+      state.staff.forEach(emp => {
+        const empShifts = prevSched[emp.id] || {};
+        for (let d = 0; d < 7; d++) {
+          const shift = empShifts[d];
+          if (shift && shift.type !== 'off' && shift.hours > 0) {
+            const isAvail = !emp.availability || emp.availability[d] !== false;
+            if (!isAvail) {
+              conflicts.push({
+                empName: emp.name,
+                dayName: DAY_NAMES[d],
+                shiftLabel: shift.label || 'Shift'
+              });
+            }
+          }
+        }
+      });
+
+      // 4. Construct friendly confirmation dialog
+      let confirmMsg = `📋 DUPLICATE PREVIOUS WEEK SCHEDULE\n\n`;
+      confirmMsg += `Do you want to copy ${prevShiftCount} shifts from last week (${prevLabel}) into this week (${currLabel})?\n\n`;
+
+      if (currShiftCount > 0) {
+        confirmMsg += `⚠️ OVERWRITE NOTICE:\nThis week currently has ${currShiftCount} shift(s) scheduled. Copying will replace and overwrite this week's current schedule.\n\n`;
+      }
+
+      if (conflicts.length > 0) {
+        confirmMsg += `⚠️ AVAILABILITY CONFLICTS (${conflicts.length} flagged):\n`;
+        conflicts.slice(0, 5).forEach(c => {
+          confirmMsg += `• ${c.empName} is unavailable on ${c.dayName} (${c.shiftLabel})\n`;
+        });
+        if (conflicts.length > 5) {
+          confirmMsg += `• ...and ${conflicts.length - 5} more conflict(s)\n`;
+        }
+        confirmMsg += `\nIf you proceed, these will be scheduled as availability overrides.\n\n`;
+      }
+
+      confirmMsg += `Click OK to confirm and duplicate the schedule, or Cancel to keep this week unchanged.`;
+
+      if (!window.confirm(confirmMsg)) {
+        showToast('Schedule copy was cancelled. No changes were made.', 'info');
+        return;
+      }
+
+      // 5. Deep copy previous week's shifts into current week
+      if (!state.schedules[currentKey]) {
+        state.schedules[currentKey] = {};
+      }
+
+      state.staff.forEach(emp => {
+        state.schedules[currentKey][emp.id] = {};
+        for (let d = 0; d < 7; d++) {
+          const prevShift = prevSched[emp.id] ? prevSched[emp.id][d] : null;
+          if (prevShift) {
+            state.schedules[currentKey][emp.id][d] = JSON.parse(JSON.stringify(prevShift));
+          } else {
+            state.schedules[currentKey][emp.id][d] = null;
+          }
+        }
+      });
+
+      // 6. Save in localStorage and update views
+      saveState();
+      renderApp();
+
+      if (conflicts.length > 0) {
+        showToast(`Copied previous week! (${conflicts.length} shift${conflicts.length > 1 ? 's' : ''} flagged with availability warnings)`, 'warning', 4500);
+      } else {
+        showToast(`Successfully duplicated ${prevShiftCount} shift(s) from last week into this week!`, 'success');
+      }
     }
 
     // --- Clear Week with Safeguard ---
